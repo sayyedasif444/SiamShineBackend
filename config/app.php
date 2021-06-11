@@ -13,7 +13,7 @@ return [
     |
     */
 
-    'name' => env('APP_NAME', 'Laravel'),
+    'name' => env('APP_NAME', 'Siam Shine Star'),
 
     /*
     |--------------------------------------------------------------------------
@@ -118,6 +118,7 @@ return [
     | will not be safe. Please do this before deploying an application!
     |
     */
+
 
     'key' => env('APP_KEY'),
 

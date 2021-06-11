@@ -2,6 +2,7 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\UserController;
 
 /*
 |--------------------------------------------------------------------------
@@ -14,6 +15,19 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::middleware('auth:api')->get('/user', function (Request $request) {
-    return $request->user();
+//Access Control
+Route::post('/access/user-register',[UserController::class, 'register']);
+Route::post('/access/login',[UserController::class, 'login']);
+Route::post('/access/forgot-password',[UserController::class, 'forgot_password']);
+
+
+//Protected Routes
+Route::group(["middleware" => ['auth:sanctum']], function() {
+    //access control
+    Route::post('/access/admin-user-register',[UserController::class, 'register']);
+    Route::post('/access/logout',[UserController::class, 'logout']);
+    Route::post('/access/edit-user',[UserController::class, 'edit_user']);
+    Route::post('/access/update-password',[UserController::class, 'update_password']);
 });
+
+
