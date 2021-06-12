@@ -19,6 +19,8 @@ use App\Http\Controllers\UserController;
 Route::post('/access/user-register',[UserController::class, 'register']);
 Route::post('/access/login',[UserController::class, 'login']);
 Route::post('/access/forgot-password',[UserController::class, 'forgot_password']);
+Route::post('/access/reset-password',[UserController::class, 'reset_password']);
+
 
 
 //Protected Routes
@@ -28,6 +30,12 @@ Route::group(["middleware" => ['auth:sanctum']], function() {
     Route::post('/access/logout',[UserController::class, 'logout']);
     Route::post('/access/edit-user',[UserController::class, 'edit_user']);
     Route::post('/access/update-password',[UserController::class, 'update_password']);
+    Route::post('/access/add-address',[UserController::class, 'add_address']);
+    Route::post('/access/edit-address',[UserController::class, 'edit_address']);
+    Route::post('/access/list-address',[UserController::class, 'list_address']);
+
+
+
 });
 
 

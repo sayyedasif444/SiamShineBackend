@@ -7,6 +7,9 @@ use App\Models\User;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Hash;
 use App\Models\UserDetail;
+use App\Jobs\OtpDelete;
+use App\Jobs\ResetPassword;
+use App\Models\Useraddress;
 use DB;
 use Config;
 
@@ -96,7 +99,7 @@ class UserController extends Controller
             'user' => $user,
             "token" => $token,
         ];
-        return response($reponse, 201);
+        return response($reponse, 200);
     }
 
     public function edit_user(Request $request){
@@ -183,9 +186,14 @@ class UserController extends Controller
         $user->otp = $otp;
         $user->save();
         $details = [
+            'email' => $request["email"],
             'body' => 'Email: '.$request["email"].'<br> OTP: '.$otp.' <br>click on this link to reset password : '.Config::get('globeVar.frontEndUrl').'/forgot-password?useremail=asif.sayyed@momenttext.com'
         ];
-        \Mail::to('sayyedasif2016@gmail.com')->send(new \App\Mail\MailService($details));
+        ResetPassword::dispatch($details)->delay(now()->addSeconds(2));
+        $email = ([
+            "email" => $request['email'],
+        ]);
+        OtpDelete::dispatch($email)->delay(now()->addMinutes(5));
         $reponse = [
             "statuscode" => 200,
             "message" => 'Email with otp is sent to your email id.',
@@ -193,25 +201,167 @@ class UserController extends Controller
         return response($reponse, 200);
     }
 
-    public function update_password(Request $request){
+    public function reset_password(Request $request){
         $fields = $request->validate([
             'otp' => 'required|string',
             "newPassword" => 'required|string|confirmed',
+            "email" => 'required|string',
         ]);
-        $user = User::find($request['user_id']);
-
-        if (Hash::check($user->password, $fields['newPassword'])){
+        $user = User::where('email', $fields['email'])->first();
+        if($user->otp == ''){
             $reponse = [
                 "statuscode" => 400,
-                "message" => 'Password cannot be same as previous!',
+                "message" => 'OTP Expired!',
+            ];
+            return response($reponse, 400);
+        }
+        if($user->otp != $fields['otp']){
+            $reponse = [
+                "statuscode" => 400,
+                "message" => 'OTP Mismatched!',
             ];
             return response($reponse, 400);
         }
         $user->password = bcrypt($fields['newPassword']);
+        $user->otp = '';
         $user->save();
         $reponse = [
             "statuscode" => 200,
-            "message" => 'Password updated successfully!',
+            "message" => 'Password resetted successfully!',
+        ];
+        return response($reponse, 200);
+    }
+
+    public function add_address(Request $request){
+        DB::beginTransaction();
+        try {
+            $fields = $request->validate([
+                "contact_person" => 'required|string',
+                "contact_number" => 'required|string',
+                "pincode" => "required|string",
+                "address" => "required|string",
+                "city" => "required|string",
+                "state" => "required|string",
+                "userId" => "required|int"
+            ]);
+
+            $user = Useraddress::create([
+                "contact_person" => $fields['contact_person'],
+                "contact_phone" => $fields['contact_number'],
+                "pincode" => $fields['pincode'],
+                "address" => $fields['address'],
+                "city" => $fields['city'],
+                "state" => $fields['state'],
+                "userId" => $fields['userId'],
+            ]);
+            if($request['landmark'] != ''){
+                $user->landmark = $request['landmark'];
+                $user->save();
+            }
+            if($request['alternate_number'] != ''){
+                $user->alternate_number = $request['alternate_number'];
+                $user->save();
+            }
+            if($request['address_type'] != ''){
+                $user->address_type = $request['address_type'];
+                $user->save();
+            }
+            if($request['isPrimary'] != ''){
+                $user->isPrimary = $request['isPrimary'];
+                $user->save();
+            }
+
+            $reponse = [
+                'message' => 'Address Added Successfully',
+                'Address' => $user,
+
+            ];
+            DB::commit();
+            return response($reponse, 200);
+        } catch (\Throwable $th) {
+            DB::rollback();
+            $reponse = [
+                "statuscode" => 500,
+                "message" => 'Server Error!',
+            ];
+            return response($reponse, 500);
+        }
+
+    }
+
+    public function edit_address(Request $request){
+        DB::beginTransaction();
+        $Address = $request->validate([
+            'addressId'=>'required|int'
+        ]);
+        try {
+            $address = Useraddress::find($request['addressId']);
+            if($request['contact_person']){
+                $address->contact_person = $request['contact_person'];
+                $address->save();
+            }
+            if($request['contact_phone']){
+                $address->contact_phone = $request['contact_phone'];
+                $address->save();
+            }
+            if($request['pincode']){
+                $address->pincode = $request['pincode'];
+                $address->save();
+            }
+            if($request['address']){
+                $address->address = $request['address'];
+                $address->save();
+            }
+            if($request['city']){
+                $address->city = $request['city'];
+                $address->save();
+            }
+            if($request['state']){
+                $address->state = $request['state'];
+                $address->save();
+            }
+            if($request['landmark']){
+                $address->landmark = $request['landmark'];
+                $address->save();
+            }
+            if($request['alternate_number']){
+                $address->alternate_number = $request['alternate_number'];
+                $address->save();
+            }
+            if($request['address_type']){
+                $address->address_type = $request['address_type'];
+                $address->save();
+            }
+            if($request['isPrimary']){
+                $address->isPrimary = $request['isPrimary'];
+                $address->save();
+            }
+            $reponse = [
+                'message' => 'Address Updated Successfully',
+                'Address' => $address,
+
+            ];
+            DB::commit();
+            return response($reponse, 200);
+        } catch (\Throwable $th) {
+            DB::rollback();
+            return $th;
+            $reponse = [
+                "statuscode" => 500,
+                "message" => 'Server Error!',
+            ];
+            return response($reponse, 500);
+        }
+    }
+
+    public function list_address(Request $request){
+        $Address = $request->validate([
+            'userId'=>'required|int'
+        ]);
+        $address = Useraddress::where('userId', $request['userId'])->get();
+        $reponse = [
+            'message' => 'Addresses listed successfully',
+            'AddressList' => $address,
         ];
         return response($reponse, 200);
     }

@@ -1,14 +1,12 @@
 <!DOCTYPE html>
 <html>
-<head>
-    <title>ItsolutionStuff.com</title>
-</head>
+
 <body>
     <p>@php
         echo $details['body'];
     @endphp</p>
 
-    <strong>Regards</strong>
+    <strong>Regards</strong><br>
     {{ config('app.name') }}
 </body>
 </html>
