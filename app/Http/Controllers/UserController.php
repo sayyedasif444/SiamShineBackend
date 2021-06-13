@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Hash;
 use App\Models\UserDetail;
 use App\Jobs\OtpDelete;
 use App\Jobs\ResetPassword;
+use App\Models\ImageDeck;
 use App\Models\Useraddress;
 use DB;
 use Config;
@@ -31,15 +32,14 @@ class UserController extends Controller
 
     //
     public function register(Request $request){
-
+        $fields = $request->validate([
+            "email" => 'required|string|unique:users,email',
+            "password" => 'required|string|confirmed',
+            "mobile" => "",
+            "userType" => "required|string"
+        ]);
         DB::beginTransaction();
         try{
-            $fields = $request->validate([
-                "email" => 'required|string|unique:users,email',
-                "password" => 'required|string|confirmed',
-                "mobile" => "",
-                "userType" => "required|string"
-            ]);
             $fields1 = $request->validate([
                 "first_name" => 'required|string',
                 "last_name" => 'required|string'
@@ -50,14 +50,16 @@ class UserController extends Controller
                 "mobile" => $fields['mobile'],
                 "userType" => $fields['userType']
             ]);
+            DB::commit();
             $user_detail = UserDetail::create([
                 "first_name" =>  $fields1['first_name'],
                 "last_name" =>  $fields1['last_name'],
-                "user_id" => $user->id
+                "userId" => $user->id
             ]);
 
             $token = $user->createToken('myapptoken')->plainTextToken;
             $reponse = [
+                'statuscode'=>200,
                 'user' => $user,
                 "token" => $token,
             ];
@@ -66,20 +68,31 @@ class UserController extends Controller
 
         }catch(\Exception $e){
             DB::rollback();
+            return $e;
             $reponse = [
                 "statuscode" => 500,
                 "message" => 'Server Error!',
             ];
-            return response($reponse, 500);
+            return response($reponse, 200);
         }
 
     }
 
     public function logout(Request $request){
-        auth()->user()->tokens()->delete();
-        return response([
-            'msg'=> "logged out",
-        ],200);
+        try {
+            auth()->user()->tokens()->delete();
+            return response([
+                "statuscode"=> 200,
+                'message'=> "logged out",
+            ],200);
+        } catch (\Throwable $th) {
+            $reponse = [
+                "statuscode" => 500,
+                "message" => 'Server Error!',
+            ];
+            return response($reponse, 200);
+        }
+
     }
 
     public function login(Request $request){
@@ -87,19 +100,29 @@ class UserController extends Controller
             "email" => 'required|string',
             "password" => 'required|string'
         ]);
-
-        $user = User::where('email',$fields['email'])->first();
-        if(!$user || !Hash::check($fields['password'], $user->password)){
-            return response([
-                'message'=>"Invalid user details",
-            ], 400);
+        try {
+            $user = User::where('email',$fields['email'])->first();
+            if(!$user || !Hash::check($fields['password'], $user->password)){
+                return response([
+                    'statuscode'=> 400,
+                    'message'=>"Invalid user details",
+                ], 200);
+            }
+            $token = $user->createToken('myapptoken')->plainTextToken;
+            $reponse = [
+                'statuscode'=> 200,
+                'user' => $user,
+                "token" => $token,
+            ];
+            return response($reponse, 200);
+        } catch (\Throwable $th) {
+            $reponse = [
+                "statuscode" => 500,
+                "message" => 'Server Error!',
+            ];
+            return response($reponse, 200);
         }
-        $token = $user->createToken('myapptoken')->plainTextToken;
-        $reponse = [
-            'user' => $user,
-            "token" => $token,
-        ];
-        return response($reponse, 200);
+
     }
 
     public function edit_user(Request $request){
@@ -135,17 +158,22 @@ class UserController extends Controller
                 $userDetail->gender = $request['gender'];
                 $userDetail->save();
             }
+            $reponse = [
+                "statuscode" => 200,
+                "message" => 'User Updated Successfully!',
+            ];
+            return response($reponse, 200);
 
 
         } catch (\Throwable $th) {
             DB::rollback();
             // return $th;
-            echo $th;
+            //echo $th;
             $reponse = [
                 "statuscode" => 500,
                 "message" => 'Server Error!',
             ];
-            return response($reponse, 500);
+            return response($reponse, 200);
         }
     }
 
@@ -154,51 +182,67 @@ class UserController extends Controller
             "oldPassword" => 'required|string',
             "newPassword" => 'required|string|confirmed',
         ]);
-        $user = User::find($request['user_id']);
+        try {
+            $user = User::find($request['user_id']);
 
-        if (Hash::check($user->password, $fields['newPassword'])){
+            if (Hash::check($user->password, $fields['newPassword'])){
+                $reponse = [
+                    "statuscode" => 400,
+                    "message" => 'Password cannot be same as previous!',
+                ];
+                return response($reponse, 200);
+            }
+            $user->password = bcrypt($fields['newPassword']);
+            $user->save();
             $reponse = [
-                "statuscode" => 400,
-                "message" => 'Password cannot be same as previous!',
+                "statuscode" => 200,
+                "message" => 'Password updated successfully!',
             ];
-            return response($reponse, 400);
+            return response($reponse, 200);
+        } catch (\Throwable $th) {
+            $reponse = [
+                "statuscode" => 500,
+                "message" => 'Server Error!',
+            ];
+            return response($reponse, 200);
         }
-        $user->password = bcrypt($fields['newPassword']);
-        $user->save();
-        $reponse = [
-            "statuscode" => 200,
-            "message" => 'Password updated successfully!',
-        ];
-        return response($reponse, 200);
     }
 
     public function forgot_password(Request $request){
-        $user = User::where('email', $request['email'])->first();
-        //return $user;
-        if($user == ''){
-            $reponse = [
-                "statuscode" => 400,
-                "message" => 'No user is registered with the email: ' . $request["email"],
+        try {
+            $user = User::where('email', $request['email'])->first();
+            //return $user;
+            if($user == ''){
+                $reponse = [
+                    "statuscode" => 400,
+                    "message" => 'No user is registered with the email: ' . $request["email"],
+                ];
+                return response($reponse, 200);
+            }
+            $otp = randString(8);
+            $user->otp = $otp;
+            $user->save();
+            $details = [
+                'email' => $request["email"],
+                'body' => 'Email: '.$request["email"].'<br> OTP: '.$otp.' <br>click on this link to reset password : '.Config::get('globeVar.frontEndUrl').'/forgot-password?useremail=asif.sayyed@momenttext.com'
             ];
-            return response($reponse, 400);
+            ResetPassword::dispatch($details)->delay(now()->addSeconds(2));
+            $email = ([
+                "email" => $request['email'],
+            ]);
+            OtpDelete::dispatch($email)->delay(now()->addMinutes(5));
+            $reponse = [
+                "statuscode" => 200,
+                "message" => 'Email with otp is sent to your email id.',
+            ];
+            return response($reponse, 200);
+        } catch (\Throwable $th) {
+            $reponse = [
+                "statuscode" => 500,
+                "message" => 'Server Error!',
+            ];
+            return response($reponse, 200);
         }
-        $otp = randString(8);
-        $user->otp = $otp;
-        $user->save();
-        $details = [
-            'email' => $request["email"],
-            'body' => 'Email: '.$request["email"].'<br> OTP: '.$otp.' <br>click on this link to reset password : '.Config::get('globeVar.frontEndUrl').'/forgot-password?useremail=asif.sayyed@momenttext.com'
-        ];
-        ResetPassword::dispatch($details)->delay(now()->addSeconds(2));
-        $email = ([
-            "email" => $request['email'],
-        ]);
-        OtpDelete::dispatch($email)->delay(now()->addMinutes(5));
-        $reponse = [
-            "statuscode" => 200,
-            "message" => 'Email with otp is sent to your email id.',
-        ];
-        return response($reponse, 200);
     }
 
     public function reset_password(Request $request){
@@ -207,29 +251,38 @@ class UserController extends Controller
             "newPassword" => 'required|string|confirmed',
             "email" => 'required|string',
         ]);
-        $user = User::where('email', $fields['email'])->first();
-        if($user->otp == ''){
+        try {
+            $user = User::where('email', $fields['email'])->first();
+            if($user->otp == ''){
+                $reponse = [
+                    "statuscode" => 400,
+                    "message" => 'OTP Expired!',
+                ];
+                return response($reponse, 200);
+            }
+            if($user->otp != $fields['otp']){
+                $reponse = [
+                    "statuscode" => 400,
+                    "message" => 'OTP Mismatched!',
+                ];
+                return response($reponse, 200);
+            }
+            $user->password = bcrypt($fields['newPassword']);
+            $user->otp = '';
+            $user->save();
             $reponse = [
-                "statuscode" => 400,
-                "message" => 'OTP Expired!',
+                "statuscode" => 200,
+                "message" => 'Password resetted successfully!',
             ];
-            return response($reponse, 400);
-        }
-        if($user->otp != $fields['otp']){
+            return response($reponse, 200);
+        } catch (\Throwable $th) {
             $reponse = [
-                "statuscode" => 400,
-                "message" => 'OTP Mismatched!',
+                "statuscode" => 500,
+                "message" => 'Server Error!',
             ];
-            return response($reponse, 400);
+            return response($reponse, 200);
         }
-        $user->password = bcrypt($fields['newPassword']);
-        $user->otp = '';
-        $user->save();
-        $reponse = [
-            "statuscode" => 200,
-            "message" => 'Password resetted successfully!',
-        ];
-        return response($reponse, 200);
+
     }
 
     public function add_address(Request $request){
@@ -272,6 +325,7 @@ class UserController extends Controller
             }
 
             $reponse = [
+                "statuscode" => 200,
                 'message' => 'Address Added Successfully',
                 'Address' => $user,
 
@@ -284,7 +338,7 @@ class UserController extends Controller
                 "statuscode" => 500,
                 "message" => 'Server Error!',
             ];
-            return response($reponse, 500);
+            return response($reponse, 200);
         }
 
     }
@@ -337,6 +391,7 @@ class UserController extends Controller
                 $address->save();
             }
             $reponse = [
+                "statuscode" => 200,
                 'message' => 'Address Updated Successfully',
                 'Address' => $address,
 
@@ -345,12 +400,12 @@ class UserController extends Controller
             return response($reponse, 200);
         } catch (\Throwable $th) {
             DB::rollback();
-            return $th;
+            //return $th;
             $reponse = [
                 "statuscode" => 500,
                 "message" => 'Server Error!',
             ];
-            return response($reponse, 500);
+            return response($reponse, 200);
         }
     }
 
@@ -360,9 +415,219 @@ class UserController extends Controller
         ]);
         $address = Useraddress::where('userId', $request['userId'])->get();
         $reponse = [
+            "statuscode" => 200,
             'message' => 'Addresses listed successfully',
-            'AddressList' => $address,
+            'data' => $address,
         ];
         return response($reponse, 200);
+    }
+
+    public function list_users(Request $request){
+        $request->validate([
+            'userId'=>'required|int',
+        ]);
+        try {
+            $user = User::find($request['userId']);
+            if($user == null){
+                if($user == null){
+                    $reponse = [
+                        "statuscode" => 400,
+                        "message" => 'Invalid user!',
+                    ];
+                    return response($reponse, 200);
+                }
+            }
+            if($user->userType != 'ADMIN' || $user == ''){
+                $reponse = [
+                    "statuscode" => 400,
+                    "message" => 'User not authorized.',
+                ];
+                return response($reponse, 200);
+            }
+            $userList = User::all();
+            $reponse = [
+                "statuscode" => 200,
+                "message" => 'User not authorized.',
+                "data" => $userList
+            ];
+            return response($reponse, 200);
+        } catch (\Throwable $th) {
+            $reponse = [
+                "statuscode" => 500,
+                "message" => 'Server Error!',
+            ];
+            return response($reponse, 200);
+        }
+
+    }
+
+    public function delete_user(Request $request){
+        $request->validate([
+            'userId'=>'required|int',
+            'user_id'=>'required|int',
+        ]);
+        try {
+            $user = User::find($request['userId']);
+            if($user == null){
+                if($user == null){
+                    $reponse = [
+                        "statuscode" => 400,
+                        "message" => 'Invalid user!',
+                    ];
+                    return response($reponse, 200);
+                }
+            }
+            if($user->userType != 'ADMIN' || $user == ''){
+                $reponse = [
+                    "statuscode" => 400,
+                    "message" => 'User not authorized.',
+                ];
+                return response($reponse, 200);
+            }
+            $userList = User::find($request['user_id']);
+            if($userList == ''){
+                $reponse = [
+                    "statuscode" => 400,
+                    "message" => 'User not found!',
+                ];
+                return response($reponse, 200);
+            }
+            DB::DELETE(DB::raw('delete from users where id = ' . $request['user_id']));
+            $reponse = [
+                "statuscode" => 200,
+                "message" => 'User Deleted Successfully.',
+            ];
+            return response($reponse, 200);
+        } catch (\Throwable $th) {
+            return $th;
+            $reponse = [
+                "statuscode" => 500,
+                "message" => 'Server Error!',
+            ];
+            return response($reponse, 200);
+        }
+    }
+
+
+    //add deck images
+    public function add_image(Request $request){
+        $fields = $request->validate([
+            "userId" => 'required|int',
+        ]);
+        DB::beginTransaction();
+        try {
+            $user = User::find($fields['userId']);
+            if($user == null){
+                if($user == null){
+                    $reponse = [
+                        "statuscode" => 400,
+                        "message" => 'Invalid user!',
+                    ];
+                    return response($reponse, 200);
+                }
+            }
+            if($user->userType != 'ADMIN' ||  $user == ''){
+                $reponse = [
+                    "statuscode" => 400,
+                    "message" => 'User not authorized.',
+                ];
+                return response($reponse, 200);
+            }
+            if(count($request->all()) > 1){
+                //return $request->all();
+                foreach($request->file() as $item => $val){
+                    $file = $val;
+                    $fileext =  $val->extension();
+                    $allowed = array('jpeg', 'png', 'jpg', 'pdf');
+                    if(!in_array(strtolower($fileext), $allowed)){
+                        $reponse = [
+                            "statuscode" => 400,
+                            "message" => $fileext. ' is an Invalid format, please provide PNG|JPG|JPEG|pdf only.',
+                        ];
+                        return response($reponse, 200);
+                    }
+                    $filetostore = time() + rand(10,100).time().'.'.$fileext;
+                    $path = $val->move('storage/uploads/', $filetostore);
+                    $name = $val->getClientOriginalName();
+                    $imgDeck = ImageDeck::create([
+                        'image_path'=>$filetostore,
+                        'image_name'=>$name,
+                    ]);
+                }
+                DB::commit();
+                $reponse = [
+                    "statuscode" => 200,
+                    "message" => 'Files Added Successfully!',
+                ];
+                return response($reponse, 200);
+            }else{
+                $reponse = [
+                    "statuscode" => 400,
+                    "message" => 'No file(s) found!',
+                ];
+                return response($reponse, 200);
+            }
+
+        } catch (\Throwable $th) {
+            DB::rollback();
+            return $th;
+             $reponse = [
+                 "statuscode" => 500,
+                 "message" => 'Server Error!',
+             ];
+             return response($reponse, 200);
+        }
+
+    }
+    public function delete_image(Request $request){
+        $fields = $request->validate([
+            "userId" => 'required|int',
+            "image_id" => 'required|int'
+        ]);
+        DB::beginTransaction();
+        try {
+            $user = User::find($fields['userId']);
+            if($user == null){
+                if($user == null){
+                    $reponse = [
+                        "statuscode" => 400,
+                        "message" => 'Invalid user!',
+                    ];
+                    return response($reponse, 200);
+                }
+            }
+            if($user->userType != 'ADMIN' ||  $user == ''){
+                $reponse = [
+                    "statuscode" => 400,
+                    "message" => 'User not authorized.',
+                ];
+                return response($reponse, 200);
+            }
+            $ImageDeck = ImageDeck::find($fields['image_id']);
+            if($ImageDeck == null){
+                $reponse = [
+                    "statuscode" => 400,
+                    "message" => 'Image with given id not found!',
+                ];
+                return response($reponse, 200);
+            }
+            $ImageDeck->delete();
+            DB::commit();
+            $reponse = [
+                "statuscode" => 200,
+                "message" => 'Image Deleted Successfully!',
+            ];
+            return response($reponse, 200);
+
+        } catch (\Throwable $th) {
+            DB::rollback();
+            return $th;
+             $reponse = [
+                 "statuscode" => 500,
+                 "message" => 'Server Error!',
+             ];
+             return response($reponse, 200);
+        }
+
     }
 }
