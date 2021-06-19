@@ -11,6 +11,9 @@ use App\Models\Product;
 use App\Models\ImageDeck;
 use App\Models\ProductAttributes;
 use App\Models\ProductImages;
+use App\Models\ProductSupportingFile;
+use App\Models\ProductCategory;
+use App\Models\StockItem;
 use DB;
 use Config;
 
@@ -45,12 +48,14 @@ class ProductController extends Controller
                 return response($reponse, 200);
             }
         }
-        if($user->userType != 'ADMIN' || $user == ''){
-            $reponse = [
-                "statuscode" => 400,
-                "message" => 'User not authorized.',
-            ];
-            return response($reponse, 200);
+        if($user->userType != 'ADMIN' ||  $user == ''){
+            if($user->userType != 'COMPANY-ADMIN'){
+                $reponse = [
+                    "statuscode" => 400,
+                    "message" => 'User not authorized.',
+                ];
+                return response($reponse, 200);
+            }
         }
         DB::beginTransaction();
         try {
@@ -98,12 +103,14 @@ class ProductController extends Controller
                 return response($reponse, 200);
             }
         }
-        if($user->userType != 'ADMIN' || $user == ''){
-            $reponse = [
-                "statuscode" => 400,
-                "message" => 'User not authorized.',
-            ];
-            return response($reponse, 200);
+        if($user->userType != 'ADMIN' ||  $user == ''){
+            if($user->userType != 'COMPANY-ADMIN'){
+                $reponse = [
+                    "statuscode" => 400,
+                    "message" => 'User not authorized.',
+                ];
+                return response($reponse, 200);
+            }
         }
         DB::beginTransaction();
         try {
@@ -203,13 +210,14 @@ class ProductController extends Controller
                 return response($reponse, 200);
             }
         }
-        if($user->userType != 'ADMIN' || $user == ''){
-
-            $reponse = [
-                "statuscode" => 400,
-                "message" => 'User not authorized.',
-            ];
-            return response($reponse, 200);
+        if($user->userType != 'ADMIN' ||  $user == ''){
+            if($user->userType != 'COMPANY-ADMIN'){
+                $reponse = [
+                    "statuscode" => 400,
+                    "message" => 'User not authorized.',
+                ];
+                return response($reponse, 200);
+            }
         }
         $category = Category::find($request['category_id']);
         if($category == ''){
@@ -245,11 +253,13 @@ class ProductController extends Controller
                 }
             }
             if($user->userType != 'ADMIN' ||  $user == ''){
-                $reponse = [
-                    "statuscode" => 400,
-                    "message" => 'User not authorized.',
-                ];
-                return response($reponse, 200);
+                if($user->userType != 'COMPANY-ADMIN'){
+                    $reponse = [
+                        "statuscode" => 400,
+                        "message" => 'User not authorized.',
+                    ];
+                    return response($reponse, 200);
+                }
             }
             if(count($request->all()) > 1){
                 //return $request->all();
@@ -268,7 +278,7 @@ class ProductController extends Controller
                     $path = $val->move('storage/uploads/', $filetostore);
                     $name = $val->getClientOriginalName();
                     $imgDeck = ImageDeck::create([
-                        'image_path'=>$filetostore,
+                        'image_path'=>'/storage/uploads/'.$filetostore,
                         'image_name'=>$name,
                     ]);
                 }
@@ -317,11 +327,13 @@ class ProductController extends Controller
                 }
             }
             if($user->userType != 'ADMIN' ||  $user == ''){
-                $reponse = [
-                    "statuscode" => 400,
-                    "message" => 'User not authorized.',
-                ];
-                return response($reponse, 200);
+                if($user->userType != 'COMPANY-ADMIN'){
+                    $reponse = [
+                        "statuscode" => 400,
+                        "message" => 'User not authorized.',
+                    ];
+                    return response($reponse, 200);
+                }
             }
             $attribute = Attributes::create([
                 "attribute_name" => $fields['attribute_name'],
@@ -388,12 +400,14 @@ class ProductController extends Controller
                     return response($reponse, 200);
                 }
             }
-            if($user->userType != 'ADMIN' || $user == ''){
-                $reponse = [
-                    "statuscode" => 400,
-                    "message" => 'User not authorized.',
-                ];
-                return response($reponse, 200);
+            if($user->userType != 'ADMIN' ||  $user == ''){
+                if($user->userType != 'COMPANY-ADMIN'){
+                    $reponse = [
+                        "statuscode" => 400,
+                        "message" => 'User not authorized.',
+                    ];
+                    return response($reponse, 200);
+                }
             }
             $attribute = Attributes::find($request['attribute_id']);
             if($request['attribute_desc'] != ''){
@@ -507,13 +521,14 @@ class ProductController extends Controller
                 return response($reponse, 200);
             }
         }
-        if($user->userType != 'ADMIN' || $user == ''){
-
-            $reponse = [
-                "statuscode" => 400,
-                "message" => 'User not authorized.',
-            ];
-            return response($reponse, 200);
+        if($user->userType != 'ADMIN' ||  $user == ''){
+            if($user->userType != 'COMPANY-ADMIN'){
+                $reponse = [
+                    "statuscode" => 400,
+                    "message" => 'User not authorized.',
+                ];
+                return response($reponse, 200);
+            }
         }
         $attribute = Attributes::find($request['attribute_id']);
         if($attribute == ''){
@@ -549,11 +564,13 @@ class ProductController extends Controller
                 }
             }
             if($user->userType != 'ADMIN' ||  $user == ''){
-                $reponse = [
-                    "statuscode" => 400,
-                    "message" => 'User not authorized.',
-                ];
-                return response($reponse, 200);
+                if($user->userType != 'COMPANY-ADMIN'){
+                    $reponse = [
+                        "statuscode" => 400,
+                        "message" => 'User not authorized.',
+                    ];
+                    return response($reponse, 200);
+                }
             }
             $product = Product::create([
                 "product_name" => $fields['product_name'],
@@ -572,15 +589,20 @@ class ProductController extends Controller
                 $product->product_price_range = $request['product_price_range'];
                 $product->save();
             }
-            if($request['category_id'] != ''){
-                $product->category_id = $request['category_id'];
+            if($request['isStockable'] == 1){
+                $product->isStockable = $request['isStockable'];
                 $product->save();
             }
-
+            if($request['isAvailable'] == 0){
+                $product->isAvailable = $request['isAvailable'];
+                $product->save();
+            }
             DB::commit();
             $reponse = [
                 "statuscode" => 200,
                 "message" => 'Product Added Successfully!',
+                "product_id" => $product->id,
+                "productId" => $product->product_u_id,
             ];
             return response($reponse, 200);
         } catch (\Throwable $th) {
@@ -593,6 +615,153 @@ class ProductController extends Controller
             return response($reponse, 200);
         }
     }
+
+    public function add_stock(Request $request){
+        $fields = $request->validate([
+            "userId" => 'required|int',
+            "product_id" => 'required|int',
+            "number_of_items" => 'required|int',
+        ]);
+        DB::beginTransaction();
+        try {
+            $user = User::find($fields['userId']);
+            if($user == null){
+                if($user == null){
+                    $reponse = [
+                        "statuscode" => 400,
+                        "message" => 'Invalid user!',
+                    ];
+                    return response($reponse, 200);
+                }
+            }
+            if($user->userType != 'ADMIN' ||  $user == ''){
+                if($user->userType != 'COMPANY-ADMIN'){
+                    $reponse = [
+                        "statuscode" => 400,
+                        "message" => 'User not authorized.',
+                    ];
+                    return response($reponse, 200);
+                }
+            }
+            $prod = Product::find($fields['product_id']);
+            if($prod == ''){
+                $reponse = [
+                    "statuscode" => 400,
+                    "message" => 'Invalid Product Id!',
+                ];
+                return response($reponse, 200);
+            }
+            if($prod->isStockable == 0){
+                $reponse = [
+                    "statuscode" => 400,
+                    "message" => 'Stock entry is marked as non-stockable, please change that and try again!',
+                ];
+                return response($reponse, 200);
+            }
+            StockItem::create([
+                'product_id' => $fields['product_id'],
+                'number_of_items' => $fields['number_of_items'],
+            ]);
+            $reponse = [
+                "statuscode" => 200,
+                "message" => 'Stock Added Successfully!',
+            ];
+            return response($reponse, 200);
+        } catch (\Throwable $th) {
+            DB::rollback();
+           //return $th;
+            $reponse = [
+                "statuscode" => 500,
+                "message" => 'Server Error!',
+            ];
+            return response($reponse, 200);
+        }
+
+    }
+
+    public function edit_stock(Request $request){
+        $fields = $request->validate([
+            "userId" => 'required|int',
+            "stock_id" => 'required|int',
+            "number_of_items" => 'required|int',
+        ]);
+        $user = User::find($fields['userId']);
+        if($user == null){
+            if($user == null){
+                $reponse = [
+                    "statuscode" => 400,
+                    "message" => 'Invalid user!',
+                ];
+                return response($reponse, 200);
+            }
+        }
+        if($user->userType != 'ADMIN' ||  $user == ''){
+            if($user->userType != 'COMPANY-ADMIN'){
+                $reponse = [
+                    "statuscode" => 400,
+                    "message" => 'User not authorized.',
+                ];
+                return response($reponse, 200);
+            }
+        }
+        $stock = StockItem::find($fields['stock_id']);
+        if($stock == ''){
+            $reponse = [
+                "statuscode" => 400,
+                "message" => 'Invalid Stock Id!',
+            ];
+            return response($reponse, 200);
+        }
+        $stock->number_of_items = $fields['number_of_items'];
+        $stock->save();
+        $reponse = [
+            "statuscode" => 200,
+            "message" => 'Stock updated Successfully!',
+        ];
+        return response($reponse, 200);
+    }
+
+    public function delete_stock(Request $request){
+        $fields = $request->validate([
+            "userId" => 'required|int',
+            "stock_id" => 'required|int',
+        ]);
+        $user = User::find($fields['userId']);
+        if($user == null){
+            if($user == null){
+                $reponse = [
+                    "statuscode" => 400,
+                    "message" => 'Invalid user!',
+                ];
+                return response($reponse, 200);
+            }
+        }
+        if($user->userType != 'ADMIN' ||  $user == ''){
+            if($user->userType != 'COMPANY-ADMIN'){
+                $reponse = [
+                    "statuscode" => 400,
+                    "message" => 'User not authorized.',
+                ];
+                return response($reponse, 200);
+            }
+        }
+        $stock = StockItem::find($fields['stock_id']);
+        if($stock != ''){
+            $stock->delete();
+        }else{
+            $reponse = [
+                "statuscode" => 400,
+                "message" => 'Invalid Stock Id!',
+            ];
+            return response($reponse, 200);
+        }
+        $reponse = [
+            "statuscode" => 200,
+            "message" => 'Stock deleted Successfully!',
+        ];
+        return response($reponse, 200);
+    }
+
 
     public function add_product_image(Request $request){
         $fields = $request->validate([
@@ -613,11 +782,13 @@ class ProductController extends Controller
                 }
             }
             if($user->userType != 'ADMIN' ||  $user == ''){
-                $reponse = [
-                    "statuscode" => 400,
-                    "message" => 'User not authorized.',
-                ];
-                return response($reponse, 200);
+                if($user->userType != 'COMPANY-ADMIN'){
+                    $reponse = [
+                        "statuscode" => 400,
+                        "message" => 'User not authorized.',
+                    ];
+                    return response($reponse, 200);
+                }
             }
             if($fields['upload_type'] == "UPLOADED-FILE"){
                 if(count($request->all()) > 3){
@@ -653,7 +824,7 @@ class ProductController extends Controller
                     $path = $val->move('storage/uploads/', $filetostore);
                     $name = $val->getClientOriginalName();
                     $imgDeck = ImageDeck::create([
-                        'image_path'=>$filetostore,
+                        'image_path'=>'/storage/uploads/'.$filetostore,
                         'image_name'=>$name,
                     ]);
                     DB::commit();
@@ -667,6 +838,7 @@ class ProductController extends Controller
                     "statuscode" => 200,
                     "message" => 'Files Added to product Successfully!',
                 ];
+                return response($reponse, 200);
             }else{
                 $reponse = [
                     "statuscode" => 400,
@@ -704,11 +876,13 @@ class ProductController extends Controller
                 }
             }
             if($user->userType != 'ADMIN' ||  $user == ''){
-                $reponse = [
-                    "statuscode" => 400,
-                    "message" => 'User not authorized.',
-                ];
-                return response($reponse, 200);
+                if($user->userType != 'COMPANY-ADMIN'){
+                    $reponse = [
+                        "statuscode" => 400,
+                        "message" => 'User not authorized.',
+                    ];
+                    return response($reponse, 200);
+                }
             }
             $arr = [];
             foreach($request->all() as $item => $val){
@@ -742,10 +916,11 @@ class ProductController extends Controller
                         }
                     }
                     array_push($arr,$val);
-                    ProductAttributes::create([
+                    $patt = ProductAttributes::create([
                         "attribute_id"=>$val,
                         "product_id"=>$request['product_id'],
                     ]);
+
                 }
             }
             DB::commit();
@@ -783,11 +958,13 @@ class ProductController extends Controller
                 }
             }
             if($user->userType != 'ADMIN' ||  $user == ''){
-                $reponse = [
-                    "statuscode" => 400,
-                    "message" => 'User not authorized.',
-                ];
-                return response($reponse, 200);
+                if($user->userType != 'COMPANY-ADMIN'){
+                    $reponse = [
+                        "statuscode" => 400,
+                        "message" => 'User not authorized.',
+                    ];
+                    return response($reponse, 200);
+                }
             }
             $product = Product::find($fields['product_id']);
             if($request['product_name'] != ''){
@@ -806,11 +983,14 @@ class ProductController extends Controller
                 $product->product_price_range = $request['product_price_range'];
                 $product->save();
             }
-            if($request['category_id'] != ''){
-                $product->category_id = $request['category_id'];
+            if($request['isStockable'] != ''){
+                $product->isStockable = $request['isStockable'];
                 $product->save();
             }
-
+            if($request['isAvailable'] != ''){
+                $product->isAvailable = $request['isAvailable'];
+                $product->save();
+            }
             DB::commit();
             $reponse = [
                 "statuscode" => 200,
@@ -845,11 +1025,13 @@ class ProductController extends Controller
                 }
             }
             if($user->userType != 'ADMIN' ||  $user == ''){
-                $reponse = [
-                    "statuscode" => 400,
-                    "message" => 'User not authorized.',
-                ];
-                return response($reponse, 200);
+                if($user->userType != 'COMPANY-ADMIN'){
+                    $reponse = [
+                        "statuscode" => 400,
+                        "message" => 'User not authorized.',
+                    ];
+                    return response($reponse, 200);
+                }
             }
             $prodImage = ProductImages::find($fields['product_image_id']);
             if($prodImage == null){
@@ -894,11 +1076,13 @@ class ProductController extends Controller
                 }
             }
             if($user->userType != 'ADMIN' ||  $user == ''){
-                $reponse = [
-                    "statuscode" => 400,
-                    "message" => 'User not authorized.',
-                ];
-                return response($reponse, 200);
+                if($user->userType != 'COMPANY-ADMIN'){
+                    $reponse = [
+                        "statuscode" => 400,
+                        "message" => 'User not authorized.',
+                    ];
+                    return response($reponse, 200);
+                }
             }
             $prodAttr = ProductAttributes::find($fields['product_attribute_id']);
             if($prodAttr == null){
@@ -930,10 +1114,79 @@ class ProductController extends Controller
         $productList = Product::all();
         $list = [];
         foreach($productList as $item){
-            $attributeList = ProductAttributes::where('product_id', $item->id)->get();
-            $imageList = ProductImages::where('product_id', $item->id)->get();
+            $attributeList =  DB::SELECT(DB::raw('SELECT * FROM product_attritubes, attributes WHERE product_attritubes.attribute_id = attributes.id AND product_attritubes.product_id='.$item->id));
+            $imageList = DB::SELECT(DB::raw('SELECT * FROM product_images, image_deck WHERE product_images.image_id = image_deck.id AND product_images.product_id='.$item->id));
+            $catList = DB::SELECT(DB::raw('SELECT * FROM product_category, category WHERE product_category.category_id = category.id AND product_category.product_id='.$item->id));
+            if($item->isStockable == 0){
+                if($item->isAvailable == 1){
+                    $item->setAttribute('available_in_stock',true);
+                    $item->setAttribute('is_stockable',false);
+                    $item->setAttribute('availabe_stock',null);
+                    $item->setAttribute('stock_history',[]);
+                }
+                else{
+                    $item->setAttribute('available_in_stock',false);
+                    $item->setAttribute('is_stockable',false);
+                    $item->setAttribute('availabe_stock',null);
+                    $item->setAttribute('stock_history',[]);
+                }
+            }else{
+                $item->setAttribute('available_in_stock',true);
+                $item->setAttribute('is_stockable',true);
+                $stockcount = DB::SELECT(DB::raw('SELECT SUM(number_of_items) AS total FROM stockitem WHERE product_id = '.$item->id));
+                $item->setAttribute('availabe_stock',$stockcount[0]->total);
+                $stock = DB::SELECT(DB::raw('SELECT * From stockitem WHERE  product_id = '.$item->id));
+                $item->setAttribute('stock_history',$stock);
+            }
             $item->setAttribute('attribute',$attributeList);
             $item->setAttribute('image',$imageList);
+            $item->setAttribute('category',$catList);
+            array_push($list,$item);
+        }
+
+        $reponse = [
+            "statuscode" => 200,
+            "message" => 'Product Listed Successfully!',
+            'data' => $list,
+        ];
+        return response($reponse, 200);
+
+    }
+
+    public function list_product_by_user(Request $request){
+        $fields = $request->validate([
+            "userId" => 'required|int',
+        ]);
+        $productList = Product::where('userId', $request['userId'])->get();
+        $list = [];
+        foreach($productList as $item){
+            $attributeList =  DB::SELECT(DB::raw('SELECT * FROM product_attritubes, attributes WHERE product_attritubes.attribute_id = attributes.id AND product_attritubes.product_id='.$item->id));
+            $imageList = DB::SELECT(DB::raw('SELECT * FROM product_images, image_deck WHERE product_images.image_id = image_deck.id AND product_images.product_id='.$item->id));
+            $catList = DB::SELECT(DB::raw('SELECT * FROM product_category, category WHERE product_category.category_id = category.id AND product_category.product_id='.$item->id));
+            if($item->isStockable == 0){
+                if($item->isAvailable == 1){
+                    $item->setAttribute('available_in_stock',true);
+                    $item->setAttribute('is_stockable',false);
+                    $item->setAttribute('availabe_stock',null);
+                    $item->setAttribute('stock_history',[]);
+                }
+                else{
+                    $item->setAttribute('available_in_stock',false);
+                    $item->setAttribute('is_stockable',false);
+                    $item->setAttribute('availabe_stock',null);
+                    $item->setAttribute('stock_history',[]);
+                }
+            }else{
+                $item->setAttribute('available_in_stock',true);
+                $item->setAttribute('is_stockable',true);
+                $stockcount = DB::SELECT(DB::raw('SELECT SUM(number_of_items) AS total FROM stockitem WHERE product_id = '.$item->id));
+                $item->setAttribute('availabe_stock',$stockcount[0]->total);
+                $stock = DB::SELECT(DB::raw('SELECT * From stockitem WHERE  product_id = '.$item->id));
+                $item->setAttribute('stock_history',$stock);
+            }
+            $item->setAttribute('attribute',$attributeList);
+            $item->setAttribute('image',$imageList);
+            $item->setAttribute('category',$catList);
             array_push($list,$item);
         }
 
@@ -951,10 +1204,55 @@ class ProductController extends Controller
             "product_id" => 'required|int',
         ]);
         $productList = Product::find($fields['product_id']);
-        $attributeList = ProductAttributes::where('product_id', $productList->id)->get();
-        $imageList = ProductImages::where('product_id', $productList->id)->get();
-        $productList->setAttribute('attribute',$attributeList);
-        $productList->setAttribute('image',$imageList);
+        $attributeList =  DB::SELECT(DB::raw('SELECT * FROM product_attritubes, attributes WHERE product_attritubes.attribute_id = attributes.id AND product_attritubes.product_id='.$productList->id));
+        $imageList = DB::SELECT(DB::raw('SELECT * FROM product_images, image_deck WHERE product_images.image_id = image_deck.id AND product_images.product_id='.$productList->id));
+        $catList = DB::SELECT(DB::raw('SELECT * FROM product_category, category WHERE product_category.category_id = category.id AND product_category.product_id='.$productList->id));
+        if($productList->isStockable == 0){
+            if($productList->isAvailable == 1){
+                $productList->setAttribute('available_in_stock',true);
+                $productList->setAttribute('is_stockable',false);
+                $productList->setAttribute('availabe_stock',null);
+                $productList->setAttribute('stock_history',[]);
+            }
+            else{
+                $productList->setAttribute('available_in_stock',false);
+                $productList->setAttribute('is_stockable',false);
+                $productList->setAttribute('availabe_stock',null);
+                $productList->setAttribute('stock_history',[]);
+            }
+        }else{
+            $productList->setAttribute('available_in_stock',true);
+            $productList->setAttribute('is_stockable',true);
+            $stockcount = DB::SELECT(DB::raw('SELECT SUM(number_of_items) AS total FROM stockitem WHERE product_id = '.$productList->id));
+            $productList->setAttribute('availabe_stock',$stockcount[0]->total);
+            $stock = DB::SELECT(DB::raw('SELECT * From stockitem WHERE  product_id = '.$productList->id));
+            $productList->setAttribute('stock_history',$stock);
+        }
+        $number_of_variant = DB::SELECT(DB::raw('SELECT COUNT(*) as cnt FROM products WHERE product_u_id = "'.$productList->product_u_id.'" AND id != '. $productList->id));
+        $productList->setAttribute('number_of_variants',$number_of_variant[0]->cnt);
+        $productVariants = array();
+        if($number_of_variant[0]->cnt == 0){
+            $productVariants = new \stdClass();
+        }else{
+            $no_var = DB::SELECT(DB::raw('SELECT DISTINCT(products.id) as id, products.product_price_range, products.product_price FROM products WHERE product_u_id = "'.$productList->product_u_id.'" AND id != '.$productList->id));
+            $cntVar = 1;
+            foreach($no_var as $item){
+                $prodVariants = DB::SELECT(DB::raw('SELECT products.id,  attributes.id as attribute_id, attributes.attribute_name, attributes.attribute_desc, attributes.image_path, attributes.parent_id, attributes.created_at, attributes.updated_at, product_attritubes.product_id FROM attributes, product_attritubes, products WHERE product_attritubes.attribute_id = attributes.id AND products.id = product_attritubes.product_id AND products.id = '. $item->id));
+                if($prodVariants != ''){
+                    $prodVarCont = array();
+                    $prodVarCont['product_id'] = $item->id;
+                    $prodVarCont['product_price'] = $item->product_price;
+                    $prodVarCont['product_price_range'] = $item->product_price_range;
+                    $prodVarCont['data'] = $prodVariants;
+                    $productVariants['variant' . $cntVar] = $prodVarCont;
+                    $cntVar++;
+                }
+            }
+        }
+        $productList->setAttribute('attributes',$attributeList);
+        $productList->setAttribute('variants',$productVariants);
+        $productList->setAttribute('images',$imageList);
+        $productList->setAttribute('category',$catList);
         $reponse = [
             "statuscode" => 200,
             "message" => 'Specific Product Listed Successfully!',
@@ -963,4 +1261,444 @@ class ProductController extends Controller
         return response($reponse, 200);
 
     }
+
+    public function delete_product(Request $request){
+        $fields = $request->validate([
+            "userId" => 'required|int',
+            "product_id" => 'required|int',
+        ]);
+        try {
+            $user = User::find($fields['userId']);
+            if($user == null){
+                if($user == null){
+                    $reponse = [
+                        "statuscode" => 400,
+                        "message" => 'Invalid user!',
+                    ];
+                    return response($reponse, 200);
+                }
+            }
+            if($user->userType != 'ADMIN' ||  $user == ''){
+                if($user->userType != 'COMPANY-ADMIN'){
+                    $reponse = [
+                        "statuscode" => 400,
+                        "message" => 'User not authorized.',
+                    ];
+                    return response($reponse, 200);
+                }
+            }
+            $product = Product::find($fields['product_id']);
+            if($product == null){
+                $reponse = [
+                    "statuscode" => 400,
+                    "message" => 'Product with given id not found!',
+                ];
+                return response($reponse, 200);
+            }
+            $product->delete();
+            DB::commit();
+            $reponse = [
+                "statuscode" => 200,
+                "message" => 'Product Deleted Successfully!',
+            ];
+            return response($reponse, 200);
+        } catch (\Throwable $th) {
+            DB::rollback();
+            //return $th;
+            $reponse = [
+                "statuscode" => 500,
+                "message" => 'Server Error!',
+            ];
+            return response($reponse, 200);
+        }
+    }
+
+    public function add_product_category(Request $request){
+        $fields = $request->validate([
+            "userId" => 'required|int',
+            "product_id" => 'required|int',
+        ]);
+        DB::beginTransaction();
+        try {
+            $user = User::find($fields['userId']);
+            if($user == null){
+                if($user == null){
+                    $reponse = [
+                        "statuscode" => 400,
+                        "message" => 'Invalid user!',
+                    ];
+                    return response($reponse, 200);
+                }
+            }
+            if($user->userType != 'ADMIN' ||  $user == ''){
+                if($user->userType != 'COMPANY-ADMIN'){
+                    $reponse = [
+                        "statuscode" => 400,
+                        "message" => 'User not authorized.',
+                    ];
+                    return response($reponse, 200);
+                }
+            }
+            $arr = [];
+            foreach($request->all() as $item => $val){
+                if($item != 'userId' &&  $item != 'product_id'){
+                    if(in_array($val, $arr)){
+                        DB::rollback();
+                        $reponse = [
+                            "statuscode" => 400,
+                            "message" => 'Duplicate Attribute Id found!',
+                        ];
+                        return response($reponse, 200);
+                    }
+                    $category = ProductCategory::where('product_id', $fields['product_id'])->get();
+                    $catList = Category::where('id', $val)->get();
+                    if(count($catList) == 0){
+                        DB::rollback();
+                        $reponse = [
+                            "statuscode" => 400,
+                            "message" => 'Category with given Category id does not exists!',
+                        ];
+                        return response($reponse, 200);
+                    }
+                    foreach($category as $it){
+                        if($it->category_id == $val){
+                            DB::rollback();
+                            $reponse = [
+                                "statuscode" => 200,
+                                "message" => 'Product Category Already Exists!',
+                            ];
+                            return response($reponse, 200);
+                        }
+                    }
+                    array_push($arr,$val);
+                    ProductCategory::create([
+                        "category_id"=>$val,
+                        "product_id"=>$request['product_id'],
+                    ]);
+                }
+            }
+            DB::commit();
+            $reponse = [
+                "statuscode" => 200,
+                "message" => 'Product Category Added Successfully!',
+            ];
+            return response($reponse, 200);
+        } catch (\Throwable $th) {
+            DB::rollback();
+            //return $th;
+            $reponse = [
+                "statuscode" => 500,
+                "message" => 'Server Error!',
+            ];
+            return response($reponse, 200);
+        }
+    }
+
+    public function delete_product_category(Request $request){
+        $fields = $request->validate([
+            "userId" => 'required|int',
+            "product_category_id" => 'required|int',
+        ]);
+        try {
+            $user = User::find($fields['userId']);
+            if($user == null){
+                if($user == null){
+                    $reponse = [
+                        "statuscode" => 400,
+                        "message" => 'Invalid user!',
+                    ];
+                    return response($reponse, 200);
+                }
+            }
+            if($user->userType != 'ADMIN' ||  $user == ''){
+                if($user->userType != 'COMPANY-ADMIN'){
+                    $reponse = [
+                        "statuscode" => 400,
+                        "message" => 'User not authorized.',
+                    ];
+                    return response($reponse, 200);
+                }
+            }
+            $prodCat = ProductCategory::find($fields['product_category_id']);
+            if($prodCat == null){
+                $reponse = [
+                    "statuscode" => 400,
+                    "message" => 'Category with given id not found!',
+                ];
+                return response($reponse, 200);
+            }
+            $prodCat->delete();
+            DB::commit();
+            $reponse = [
+                "statuscode" => 200,
+                "message" => 'Category Deleted Successfully!',
+            ];
+            return response($reponse, 200);
+        } catch (\Throwable $th) {
+            DB::rollback();
+            //return $th;
+            $reponse = [
+                "statuscode" => 500,
+                "message" => 'Server Error!',
+            ];
+            return response($reponse, 200);
+        }
+    }
+
+    //add supporting file
+    public function add_product_supporting_file(Request $request){
+        $fields = $request->validate([
+            "upload_type" => 'required|string',
+            "userId" => 'required|int',
+            "product_id" => 'required|int',
+        ]);
+        DB::beginTransaction();
+        try {
+            $user = User::find($fields['userId']);
+            if($user == null){
+                if($user == null){
+                    $reponse = [
+                        "statuscode" => 400,
+                        "message" => 'Invalid user!',
+                    ];
+                    return response($reponse, 200);
+                }
+            }
+            if($user->userType != 'ADMIN' ||  $user == ''){
+                if($user->userType != 'COMPANY-ADMIN'){
+                    $reponse = [
+                        "statuscode" => 400,
+                        "message" => 'User not authorized.',
+                    ];
+                    return response($reponse, 200);
+                }
+            }
+            if($fields['upload_type'] == "UPLOADED-FILE"){
+                if(count($request->all()) > 3){
+                    //return $request->all();
+                    foreach($request->all() as $item => $val){
+                        if($item != 'upload_type' && $item != 'userId' &&  $item != 'product_id'){
+                            ProductSupportingFile::create([
+                                "image_id"=>$val,
+                                "product_id"=>$request['product_id'],
+                            ]);
+                        }
+                    }
+                    DB::commit();
+                    $reponse = [
+                        "statuscode" => 200,
+                        "message" => 'Files Added to product Successfully!',
+                    ];
+                }
+                return response($reponse, 200);
+            }elseif($fields['upload_type'] == "NEW-FILE"){
+                foreach($request->file() as $item => $val){
+                    $file = $val;
+                    $fileext =  $val->extension();
+                    $allowed = array('jpeg', 'png', 'jpg', 'pdf');
+                    if(!in_array(strtolower($fileext), $allowed)){
+                        $reponse = [
+                            "statuscode" => 400,
+                            "message" => $fileext. ' is an Invalid image format, please provide PNG|JPG|JPEG only.',
+                        ];
+                        return response($reponse, 200);
+                    }
+                    $filetostore = time() + rand(10,100).time().'.'.$fileext;
+                    $path = $val->move('storage/uploads/', $filetostore);
+                    $name = $val->getClientOriginalName();
+                    $imgDeck = ImageDeck::create([
+                        'image_path'=>'/storage/uploads/'.$filetostore,
+                        'image_name'=>$name,
+                    ]);
+                    DB::commit();
+                    ProductSupportingFile::create([
+                        "image_id"=>$imgDeck->id,
+                        "product_id"=>$request['product_id'],
+                    ]);
+                    DB::commit();
+                }
+                $reponse = [
+                    "statuscode" => 200,
+                    "message" => 'Files Added to product Successfully!',
+                ];
+                return response($reponse, 200);
+            }else{
+                $reponse = [
+                    "statuscode" => 400,
+                    "message" => 'Invalid Upload!',
+                ];
+                return response($reponse, 200);
+            }
+            if(count($request->file()) > 0){
+                foreach($request->file() as $item => $val){
+                    $file = $val;
+                    $fileext =  $val->extension();
+                    $allowed = array('jpeg', 'png', 'jpg', 'pdf');
+                    if(!in_array(strtolower($fileext), $allowed)){
+                        $reponse = [
+                            "statuscode" => 400,
+                            "message" => $fileext. ' is an Invalid image format, please provide PNG|JPG|JPEG|PDF only.',
+                        ];
+                        return response($reponse, 200);
+                    }
+                    $filetostore = time() + rand(10,100).time().'.'.$fileext;
+                    $path = $val->move('storage/uploads/', $filetostore);
+                    $name = $val->getClientOriginalName();
+                    $imgDeck = ImageDeck::create([
+                        'image_path'=>'/storage/uploads/'.$filetostore,
+                        'image_name'=>$name,
+                    ]);
+                    DB::commit();
+                    ProductSupportingFile::create([
+                        "image_id"=>$imgDeck->id,
+                        "product_id"=>$request['product_id'],
+                    ]);
+                    DB::commit();
+                }
+                $reponse = [
+                    "statuscode" => 200,
+                    "message" => 'Files Added to product Successfully!',
+                ];
+                return response($reponse, 200);
+            }else{
+                $reponse = [
+                    "statuscode" => 400,
+                    "message" => 'No files to Upload!',
+                ];
+                return response($reponse, 200);
+            }
+        } catch (\Throwable $th) {
+            DB::rollback();
+            return $th;
+             $reponse = [
+                 "statuscode" => 500,
+                 "message" => 'Server Error!',
+             ];
+             return response($reponse, 200);
+        }
+    }
+
+    public function delete_product_supporting_file(Request $request){
+        $fields = $request->validate([
+            "userId" => 'required|int',
+            "product_supporting_file_id" => 'required|int',
+        ]);
+        try {
+            $user = User::find($fields['userId']);
+            if($user == null){
+                if($user == null){
+                    $reponse = [
+                        "statuscode" => 400,
+                        "message" => 'Invalid user!',
+                    ];
+                    return response($reponse, 200);
+                }
+            }
+            if($user->userType != 'ADMIN' ||  $user == ''){
+                if($user->userType != 'COMPANY-ADMIN'){
+                    $reponse = [
+                        "statuscode" => 400,
+                        "message" => 'User not authorized.',
+                    ];
+                    return response($reponse, 200);
+                }
+            }
+            $prodImage = ProductSupportingFile::find($fields['product_supporting_file_id']);
+            if($prodImage == null){
+                $reponse = [
+                    "statuscode" => 400,
+                    "message" => 'File with given id not found!',
+                ];
+                return response($reponse, 200);
+            }
+            $prodImage->delete();
+            DB::commit();
+            $reponse = [
+                "statuscode" => 200,
+                "message" => 'File Deleted Successfully!',
+            ];
+            return response($reponse, 200);
+        } catch (\Throwable $th) {
+            DB::rollback();
+            //return $th;
+            $reponse = [
+                "statuscode" => 500,
+                "message" => 'Server Error!',
+            ];
+            return response($reponse, 200);
+        }
+    }
+
+    //add product variant
+    public function add_product_variant(Request $request){
+        $fields = $request->validate([
+            "productId" => 'required|string',
+            "product_name" => 'required|string',
+            "userId" => 'required|int',
+        ]);
+        DB::beginTransaction();
+        try {
+            $user = User::find($fields['userId']);
+            if($user == null){
+                if($user == null){
+                    $reponse = [
+                        "statuscode" => 400,
+                        "message" => 'Invalid user!',
+                    ];
+                    return response($reponse, 200);
+                }
+            }
+            if($user->userType != 'ADMIN' ||  $user == ''){
+                if($user->userType != 'COMPANY-ADMIN'){
+                    $reponse = [
+                        "statuscode" => 400,
+                        "message" => 'User not authorized.',
+                    ];
+                    return response($reponse, 200);
+                }
+            }
+            $product = Product::create([
+                "product_name" => $fields['product_name'],
+                "userId" => $fields['userId'],
+                "product_u_id" => $fields['productId'],
+            ]);
+            if($request['product_desc'] != ''){
+                $product->product_desc = $request['product_desc'];
+                $product->save();
+            }
+            if($request['product_price'] != ''){
+                $product->product_price = $request['product_price'];
+                $product->save();
+            }
+            if($request['product_price_range'] != ''){
+                $product->product_price_range = $request['product_price_range'];
+                $product->save();
+            }
+            if($request['isStockable'] == 1){
+                $product->isStockable = $request['isStockable'];
+                $product->save();
+            }
+            if($request['isAvailable'] == 0){
+                $product->isAvailable = $request['isAvailable'];
+                $product->save();
+            }
+            DB::commit();
+            $reponse = [
+                "statuscode" => 200,
+                "message" => 'Product Added Successfully!',
+                "product_id" => $product->id,
+            ];
+            return response($reponse, 200);
+        } catch (\Throwable $th) {
+            DB::rollback();
+           //return $th;
+            $reponse = [
+                "statuscode" => 500,
+                "message" => 'Server Error!',
+            ];
+            return response($reponse, 200);
+        }
+    }
+
+
 }

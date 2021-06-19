@@ -4,6 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\Operational;
 
 
 /*
@@ -49,8 +50,10 @@ Route::group(["middleware" => ['auth:sanctum']], function() {
     Route::post('/access/list-address',[UserController::class, 'list_address']);
     Route::post('/access/list-users',[UserController::class, 'list_users']);
     Route::post('/access/delete-user',[UserController::class, 'delete_user']);
-    Route::post('/ops/add-image',[UserController::class, 'add_image']);
-    Route::post('/ops/delete-image',[UserController::class, 'delete_image']);
+
+    //operational Routes
+    Route::post('/ops/add-image',[Operational::class, 'add_image']);
+    Route::post('/ops/delete-image',[Operational::class, 'delete_image']);
 
 
 
@@ -64,9 +67,18 @@ Route::group(["middleware" => ['auth:sanctum']], function() {
     Route::post('/product/edit-attribute',[ProductController::class, 'edit_attribute']);
     Route::post('/product/delete-attribute',[ProductController::class, 'delete_attribute']);
 
+    //add stocks
+    Route::post('/product/add-stock',[ProductController::class, 'add_stock']);
+    Route::post('/product/edit-stock',[ProductController::class, 'edit_stock']);
+    Route::post('/product/delete-stock',[ProductController::class, 'delete_stock']);
+
     //Product add
     Route::post('/product/add-product',[ProductController::class, 'add_product']);
+    Route::post('/product/add-product-variant',[ProductController::class, 'add_product_variant']);
     Route::post('/product/edit-product',[ProductController::class, 'edit_product']);
+    Route::post('/product/delete-product',[ProductController::class, 'delete_product']);
+    Route::post('/product/list-product-by-user',[ProductController::class, 'list_product_by_user']);
+
 
     Route::post('/product/add-product-image',[ProductController::class, 'add_product_image']);
     Route::post('/product/delete-product-image',[ProductController::class, 'delete_product_image']);
@@ -74,8 +86,14 @@ Route::group(["middleware" => ['auth:sanctum']], function() {
     Route::post('/product/add-product-attribute',[ProductController::class, 'add_product_attribute']);
     Route::post('/product/delete-product-attribute',[ProductController::class, 'delete_product_attribute']);
 
+    Route::post('/product/add-product-category',[ProductController::class, 'add_product_category']);
+    Route::post('/product/delete-product-category',[ProductController::class, 'delete_product_category']);
 
 
+    //product supporting files
+    //add supporting file
+    Route::post('/product/add-product-supporting-file',[ProductController::class, 'add_product_supporting_file']);
+    Route::post('/product/delete-product-supporting-file',[ProductController::class, 'delete_product_supporting_file']);
 
 });
 
