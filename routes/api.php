@@ -5,6 +5,9 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\Operational;
+use App\Http\Controllers\WishlistController;
+use App\Http\Controllers\CartController;
+
 
 
 /*
@@ -94,6 +97,22 @@ Route::group(["middleware" => ['auth:sanctum']], function() {
     //add supporting file
     Route::post('/product/add-product-supporting-file',[ProductController::class, 'add_product_supporting_file']);
     Route::post('/product/delete-product-supporting-file',[ProductController::class, 'delete_product_supporting_file']);
+
+    //Wishlist
+    //add to wishlist
+    Route::post('/wishlist/add-to-wishlist',[WishlistController::class, 'add_to_wishlist']);
+    Route::post('/wishlist/delete-from-wishlist',[WishlistController::class, 'remove_from_wishlisth']);
+    Route::post('/wishlist/delete-all-from-wishlist',[WishlistController::class, 'remove_all_from_wishlisth']);
+    Route::post('/wishlist/list-wishlist-items',[WishlistController::class, 'list_wishlist_items']);
+
+    //Cart
+    //add to cart
+    Route::post('/cart/add-to-cart',[CartController::class, 'add_to_cart']);
+    Route::post('/cart/delete-from-cart',[CartController::class, 'remove_from_cart']);
+    Route::post('/cart/delete-all-from-cart',[CartController::class, 'remove_all_from_cart']);
+    Route::post('/cart/list-cart-items',[CartController::class, 'list_cart_items']);
+
+
 
 });
 

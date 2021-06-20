@@ -1,16 +1,15 @@
 <?php
 
 namespace App\Http\Controllers;
-
-use Illuminate\Http\Request;
 use App\Models\User;
-use App\Models\Wishlist;
+use App\Models\Cart;
+use App\Models\Product;
+use Illuminate\Http\Request;
 use DB;
 
-
-class WishlistController extends Controller
+class CartController extends Controller
 {
-    public function add_to_wishlist(Request $request){
+    public function add_to_cart(Request $request){
         $fields = $request->validate([
             "product_id" => 'required|int',
             "userId" => 'required|int',
@@ -25,14 +24,14 @@ class WishlistController extends Controller
         }
         DB::beginTransaction();
         try {
-            $category = Wishlist::create([
+            $category = Cart::create([
                 "product_id" => $fields['product_id'],
                 "userId" => $fields['userId'],
             ]);
             DB::commit();
             $reponse = [
                 "statuscode" => 200,
-                "message" => 'Item Added to wishlist!',
+                "message" => 'Item Added to cart!',
             ];
             return response($reponse, 200);
         } catch (\Throwable $th) {
@@ -46,9 +45,9 @@ class WishlistController extends Controller
         }
     }
 
-    public function remove_from_wishlisth(Request $request){
+    public function remove_from_cart(Request $request){
         $fields = $request->validate([
-            "wishlist_item_id" => 'required|int',
+            "cart_item_id" => 'required|int',
             "userId" => 'required|int',
         ]);
         $user = User::find($fields['userId']);
@@ -59,7 +58,7 @@ class WishlistController extends Controller
             ];
             return response($reponse, 200);
         }
-        $item = Wishlist::find($fields['wishlist_item_id']);
+        $item = Cart::find($fields['cart_item_id']);
         if($item == ''){
             $reponse = [
                 "statuscode" => 400,
@@ -70,12 +69,12 @@ class WishlistController extends Controller
         $item->delete();
         $reponse = [
             "statuscode" => 200,
-            "message" => 'Wishlist Item Removed successfully!',
+            "message" => 'Cart Item Removed successfully!',
         ];
         return response($reponse, 200);
     }
 
-    public function remove_all_from_wishlisth(Request $request){
+    public function remove_all_from_cart(Request $request){
         $fields = $request->validate([
             "userId" => 'required|int',
         ]);
@@ -87,7 +86,7 @@ class WishlistController extends Controller
             ];
             return response($reponse, 200);
         }
-        $item = Wishlist::where('userId', $fields['userId'])->delete();
+        $item = Cart::where('userId', $fields['userId'])->delete();
         if($item == 0){
             $reponse = [
                 "statuscode" => 400,
@@ -97,15 +96,18 @@ class WishlistController extends Controller
         }
         $reponse = [
             "statuscode" => 200,
-            "message" => 'Wishlist Items Removed successfully!',
+            "message" => 'Cart Items Removed successfully!',
         ];
         return response($reponse, 200);
     }
 
-    public function list_wishlist_items(Request $request){
+    public function list_cart_items(Request $request){
+
         $fields = $request->validate([
             "userId" => 'required|int',
+            "product_id_list" => 'required|string',
         ]);
+       // return array($fields['product_id_list']);
         $user = User::find($fields['userId']);
         if($user == null ||  $user == ''){
             $reponse = [
@@ -114,37 +116,19 @@ class WishlistController extends Controller
             ];
             return response($reponse, 200);
         }
-        $listItem = Wishlist::leftJoin('products', function($join) {
-            $join->on('wishlist.product_id', '=', 'products.id');
-          })->where('wishlist.userId', $fields['userId'])->get();
+        $listItem = Product::whereIn('id', explode(',', $fields['product_id_list']))->get();
         $list = [];
-        //return $listItem;
-        if(count($listItem) > 0){
-            foreach($listItem as $item){
-                $bol = false;
-                if(count($list) == 0){
-                    $item['count'] = 1;
-                    array_push($list, $item);
-                }else{
-                    foreach($list as $it){
-                        if($item->product_id == $it->product_id){
-                            $it->count = $it->count + 1;
-                            $bol = false;
-                            break;
-                        }else{
-                            $bol = true;
-                        }
-                    }
-                    if($bol){
+        $explode = explode(',', $fields['product_id_list']);
 
-                        $item['count'] = 1;
-                        array_push($list, $item);
-                    }
+        foreach($listItem as $li){
+           $cont = 0;
+            for($i=0; $i<count($explode); $i++){
+                if(trim($explode[$i], ' ') == $li->id){
+                    //echo trim($explode[$i], ' ') . ' ' . $cont;
+                   $cont++;
                 }
-
             }
-        }
-        foreach($list as $li){
+
             if($li->isAvailable == 1 && $li->isStockable == 0){
                 $li['stock_availabe'] = true;
             }else{
@@ -155,11 +139,12 @@ class WishlistController extends Controller
                     $li['stock_availabe'] = false;
                 }
             }
+            $li['count'] = $cont;
         }
         $reponse = [
             "statuscode" => 200,
             "message" => "Items listed successfully",
-            "data" => $list,
+            "data" => $listItem,
         ];
         return response($reponse, 200);
     }
