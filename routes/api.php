@@ -7,6 +7,7 @@ use App\Http\Controllers\ProductController;
 use App\Http\Controllers\Operational;
 use App\Http\Controllers\WishlistController;
 use App\Http\Controllers\CartController;
+use App\Http\Controllers\OrderManagement;
 
 
 
@@ -38,6 +39,11 @@ Route::post('/product/list-attribute-by-id',[ProductController::class, 'list_att
 //products
 Route::post('/product/list-product',[ProductController::class, 'list_product']);
 Route::post('/product/list-product-by-id',[ProductController::class, 'list_product_by_id']);
+
+//ORDER MANAGEMENT
+//enquiries
+Route::post('/order/send-enquiry',[OrderManagement::class, 'send_enquiry']);
+
 
 
 

@@ -1295,7 +1295,15 @@ class ProductController extends Controller
                 ];
                 return response($reponse, 200);
             }
-            $product->delete();
+            if($product->userId == $user->id){
+                $product->delete();
+            }else{
+                $reponse = [
+                    "statuscode" => 400,
+                    "message" => 'Not Allowed!',
+                ];
+                return response($reponse, 200);
+            }
             DB::commit();
             $reponse = [
                 "statuscode" => 200,

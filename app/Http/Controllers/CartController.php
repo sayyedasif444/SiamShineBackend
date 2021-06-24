@@ -124,7 +124,6 @@ class CartController extends Controller
            $cont = 0;
             for($i=0; $i<count($explode); $i++){
                 if(trim($explode[$i], ' ') == $li->id){
-                    //echo trim($explode[$i], ' ') . ' ' . $cont;
                    $cont++;
                 }
             }
@@ -139,6 +138,10 @@ class CartController extends Controller
                     $li['stock_availabe'] = false;
                 }
             }
+            $attributeList =  DB::SELECT(DB::raw('SELECT * FROM product_attritubes, attributes WHERE product_attritubes.attribute_id = attributes.id AND product_attritubes.product_id='.$li->id));
+            $imageList = DB::SELECT(DB::raw('SELECT * FROM product_images, image_deck WHERE product_images.image_id = image_deck.id AND product_images.product_id='.$li->id));
+            $li->setAttribute('attributes',$attributeList);
+            $li->setAttribute('images',$imageList);
             $li['count'] = $cont;
         }
         $reponse = [
