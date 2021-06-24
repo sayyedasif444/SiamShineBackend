@@ -8,8 +8,8 @@ use App\Models\ProductEnquiry;
 use App\Models\ProductEnquiryList;
 use App\Models\Product;
 use App\Jobs\EnquiryMail;
-
-
+use App\Models\EnquiryFollowup;
+use App\Jobs\EnquiryUpdate;
 use DB;
 
 
@@ -112,6 +112,7 @@ class OrderManagement extends Controller
         $fields = $request->validate([
             "userId" => 'required|int',
             "enquiry_id" => 'required|int',
+            "status" => 'required|string'
         ]);
 
         $user = User::find($fields['userId']);
@@ -122,8 +123,63 @@ class OrderManagement extends Controller
             ];
             return response($reponse, 200);
         }
-        if($user->userType == 'ADMIN'){
-
+        $productList = DB::SELECT(DB::raw('SELECT * FROM (SELECT productenquire_list.id AS itemId, products.product_name, products.product_desc, products.id FROM productenquire_list, products WHERE enquiry_id = '.$fields["enquiry_id"].' and products.id = productenquire_list.product_id and products.userId = '.$fields["userId"].') as prod LEFT JOIN (SELECT image_deck.image_path, product_images.product_id FROM image_deck, product_images WHERE product_images.image_id = image_deck.id) AS image ON image.product_id = prod.id'));
+        foreach($productList as $item){
+            $prodEnquiry = ProductEnquiryList::find($item->itemId);
+            $prodEnquiry->status = $fields['status'];
+            $prodEnquiry->save();
         }
+        if($request['sendMail'] == true){
+            $enquiryUser = ProductEnquiry::find($request['enquiry_id']);
+            if($request['message'] == ''){
+                $reponse = [
+                    "statuscode" => 400,
+                    "message" => 'Message cannot be empty!',
+                ];
+                return response($reponse, 200);
+            }
+            EnquiryFollowup::create([
+                'userId' => $request['userId'],
+                'enquiry_id' => $request['enquiry_id'],
+                'message' => $request['message']
+            ]);
+            $details = [
+                'subject' => "Enquiry Update!",
+                'message' => $request['message'],
+                'email' => $enquiryUser->email,
+            ];
+            EnquiryUpdate::dispatch($details)->delay(now()->addSeconds(2));
+        }
+        $reponse = [
+            "statuscode" => 200,
+            "message" => 'Enquiry Updated Successfully!',
+        ];
+        return response($reponse, 200);
+    }
+
+    public function send_mail(Request $request){
+        $fields = $request->validate([
+            "enquiry_id" => 'required|int',
+            "message" => 'required|string',
+            "subject"=> 'required|string'
+        ]);
+        $enquiryUser = ProductEnquiry::find($request['enquiry_id']);
+        EnquiryFollowup::create([
+            'userId' => $request['userId'],
+            'enquiry_id' => $request['enquiry_id'],
+            'message' => $request['message']
+        ]);
+        $details = [
+            'subject' => $request['subject'],
+            'message' => $request['message'],
+            'email' => $enquiryUser->email,
+        ];
+        EnquiryUpdate::dispatch($details)->delay(now()->addSeconds(2));
+        $reponse = [
+            "statuscode" => 200,
+            "message" => 'Mail Sent Successfully!',
+        ];
+        return response($reponse, 200);
     }
 }
+

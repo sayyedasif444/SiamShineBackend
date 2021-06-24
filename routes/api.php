@@ -118,6 +118,10 @@ Route::group(["middleware" => ['auth:sanctum']], function() {
     Route::post('/cart/delete-all-from-cart',[CartController::class, 'remove_all_from_cart']);
     Route::post('/cart/list-cart-items',[CartController::class, 'list_cart_items']);
 
+    //ORDER MANAGEMENT
+    //enquiries
+    Route::post('/order/update-enquiry',[OrderManagement::class, 'update_enquiry']);
+    Route::post('/order/send-enquiry-mail',[OrderManagement::class, 'send_mail']);
 
 
 });
