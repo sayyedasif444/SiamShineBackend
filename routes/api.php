@@ -122,7 +122,8 @@ Route::group(["middleware" => ['auth:sanctum']], function() {
     //enquiries
     Route::post('/order/update-enquiry',[OrderManagement::class, 'update_enquiry']);
     Route::post('/order/send-enquiry-mail',[OrderManagement::class, 'send_mail']);
-
+    Route::post('/order/list-all-enquiry',[OrderManagement::class, 'list_all_enquiry']);
+    Route::post('/order/list-company-enquiry',[OrderManagement::class, 'list_company_enquiry']);
 
 });
 

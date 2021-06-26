@@ -161,8 +161,18 @@ class OrderManagement extends Controller
         $fields = $request->validate([
             "enquiry_id" => 'required|int',
             "message" => 'required|string',
-            "subject"=> 'required|string'
+            "subject"=> 'required|string',
+            "userId" => 'required|string'
         ]);
+
+        $user = User::find($fields['userId']);
+        if($user == null ||  $user == ''){
+            $reponse = [
+                "statuscode" => 400,
+                "message" => 'Invalid user!',
+            ];
+            return response($reponse, 200);
+        }
         $enquiryUser = ProductEnquiry::find($request['enquiry_id']);
         EnquiryFollowup::create([
             'userId' => $request['userId'],
@@ -180,6 +190,105 @@ class OrderManagement extends Controller
             "message" => 'Mail Sent Successfully!',
         ];
         return response($reponse, 200);
+    }
+
+    public function list_all_enquiry(Request $request){
+        $fields = $request->validate([
+            "userId" => 'required|int',
+        ]);
+
+        $user = User::find($fields['userId']);
+        if($user == null ||  $user == ''){
+            $reponse = [
+                "statuscode" => 400,
+                "message" => 'Invalid user!',
+            ];
+            return response($reponse, 200);
+        }
+        if($user->userType != "ADMIN"){
+            $reponse = [
+                "statuscode" => 400,
+                "message" => 'Invalid user!',
+            ];
+            return response($reponse, 200);
+        }
+        $enquiryList = ProductEnquiry::all();
+        $allenquriy = [];
+        foreach($enquiryList as $item){
+            $products = DB::SELECT(DB::raw('SELECT products.product_u_id, products.product_name, productenquire_list.status, productenquire_list.quantity, products.product_desc, products.product_price, products.product_price_range, users.email AS owner_email, users.id AS owner_id, productenquire_list.product_id FROM productenquire_list, products, users WHERE products.id = productenquire_list.product_id AND users.id = products.userId AND productenquire_list.enquiry_id = '.$item->id));
+            $item->products = $products;
+            $cnt = 0;
+            foreach($products as $prod){
+                if($prod->status == "CLOSED"){
+                    $cnt++;
+                }
+            }
+            if(count($products) == $cnt){
+                $item->status = "CLOSED";
+            }
+            elseif($cnt == 0){
+                $item->status = "OPEN";
+            }else{
+                $item->status = "PARTIALLY CLOSED";
+            }
+            array_push($allenquriy, $item);
+        }
+        $reponse = [
+            "statuscode" => 200,
+            "message" => 'Enquiry Listed Successfully!',
+            "data" => $allenquriy,
+        ];
+        return response($reponse, 200);
+    }
+
+    public function list_company_enquiry(Request $request){
+        $fields = $request->validate([
+            "userId" => 'required|int',
+        ]);
+
+        $user = User::find($fields['userId']);
+        if($user == null ||  $user == ''){
+            $reponse = [
+                "statuscode" => 400,
+                "message" => 'Invalid user!',
+            ];
+            return response($reponse, 200);
+        }
+        if($user->userType != "COMPANY-ADMIN"){
+            $reponse = [
+                "statuscode" => 400,
+                "message" => 'Invalid user!',
+            ];
+            return response($reponse, 200);
+        }
+        $enquiryList = DB::SELECT(DB::raw("SELECT DISTINCT(productenquiry.id), productenquiry.userId, productenquiry.name, productenquiry.message, productenquiry.email, productenquiry.phone, productenquiry.created_at, productenquiry.updated_at FROM products, productenquiry, productenquire_list, users WHERE productenquiry.id = productenquire_list.enquiry_id AND users.id = products.userId AND products.id = productenquire_list.product_id AND users.id = " . $fields['userId']));
+        $allenquriy = [];
+        foreach($enquiryList as $item){
+            $products = DB::SELECT(DB::raw('SELECT products.product_u_id, products.product_name, productenquire_list.status, productenquire_list.quantity, products.product_desc, products.product_price, products.product_price_range, users.email AS owner_email, users.id AS owner_id, productenquire_list.product_id FROM productenquire_list, products, users WHERE products.id = productenquire_list.product_id AND users.id = products.userId AND productenquire_list.enquiry_id = '.$item->id . ' AND users.id = ' . $fields['userId']));
+            $item->products = $products;
+            $cnt = 0;
+            foreach($products as $prod){
+                if($prod->status == "CLOSED"){
+                    $cnt++;
+                }
+            }
+            if(count($products) == $cnt){
+                $item->status = "CLOSED";
+            }
+            elseif($cnt == 0){
+                $item->status = "OPEN";
+            }else{
+                $item->status = "PARTIALLY CLOSED";
+            }
+            array_push($allenquriy, $item);
+        }
+        $reponse = [
+            "statuscode" => 200,
+            "message" => 'Enquiry Listed Successfully!',
+            "data" => $allenquriy,
+        ];
+        return response($reponse, 200);
+
     }
 }
 
